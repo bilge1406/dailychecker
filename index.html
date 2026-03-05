@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lost Weekly Checker</title>
+    <title>Lost Ark Altın Takipçisi</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -151,41 +151,18 @@
             color: #ffb74d;
             margin-bottom: 20px;
         }
-        .action-btns {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        .sync-btn {
-            background-color: #bb86fc;
-            color: #000;
-            border: none;
-            padding: 10px;
-            font-size: 14px;
-            font-weight: bold;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-        .sync-btn:hover { background-color: #9965f4; }
         .reset-btn {
             background-color: #cf6679;
             color: white;
             border: none;
-            padding: 10px;
-            font-size: 14px;
+            padding: 10px 20px;
+            font-size: 16px;
             border-radius: 4px;
             cursor: pointer;
             transition: 0.3s;
+            width: 100%;
         }
         .reset-btn:hover { background-color: #b33951; }
-        
-        #sync-status {
-            font-size: 12px;
-            color: #03dac6;
-            margin-top: 10px;
-            min-height: 15px;
-        }
     </style>
 </head>
 <body>
@@ -222,23 +199,18 @@
 
     <div class="summary-box">
         <div class="grand-total">Genel Toplam: <span id="grand-total-val">0</span></div>
-        <div class="action-btns">
-            <button class="sync-btn" onclick="syncAllLogs()">🔄 Logları Senkronize Et</button>
-            <button class="reset-btn" onclick="manualReset()">🗑️ Tüm Tabloyu Sıfırla</button>
-        </div>
-        <div id="sync-status"></div>
+        <button class="reset-btn" onclick="manualReset()">🗑️ Tüm Tabloyu Sıfırla</button>
     </div>
 
     <script>
         let appData = [];
         const defaultRewards = [21000, 23800, 28000, 22440, 27200]; 
-        const bossKeywords = ["Aegir", "Brel", "Mordum", "Armoche", "Kazeros"]; 
 
         function loadData() {
             let saved = localStorage.getItem('lostArkAppData');
             if (saved) {
                 appData = JSON.parse(saved);
-                // Eski verilerde region yoksa varsayılan olarak CE ata (Geriye dönük uyumluluk)
+                // Eski verilerde region yoksa varsayılan olarak CE ata
                 appData.forEach(c => { if(!c.region) c.region = "CE"; });
             } else {
                 appData = [
@@ -272,7 +244,7 @@
                 `;
 
                 let currentRewards = [...defaultRewards];
-                if (char.gs >= 1720) currentRewards[3] = 28560;
+                if (char.gs >= 1720) currentRewards[3] = 28560; // Armoche Bonus
 
                 let checkCells = '';
                 let rowTotal = 0;
@@ -280,6 +252,7 @@
 
                 for (let c = 0; c < 5; c++) {
                     let isChecked = char.checks[c];
+                    // 3 Tik sınırına ulaşıldıysa ve bu kutu boşsa kilitle
                     let isDisabled = (!isChecked && checkedCount >= 3) ? 'disabled' : '';
 
                     checkCells += `<td><input type="checkbox" class="checkbox" ${isChecked ? 'checked' : ''} ${isDisabled} onchange="toggleCheck(${r}, ${c}, this.checked)"></td>`;
@@ -305,6 +278,7 @@
 
             document.getElementById('grand-total-val').innerText = grandTotal.toLocaleString('tr-TR');
             
+            // İsim değiştirirken Enter'a basıldığında kaydetme
             document.querySelectorAll('.char-name').forEach(item => {
                 item.addEventListener('keydown', function(e) {
                     if (e.key === 'Enter') { e.preventDefault(); this.blur(); }
@@ -315,7 +289,7 @@
         function toggleCheck(r, c, isChecked) {
             appData[r].checks[c] = isChecked;
             saveData();
-            renderTable();
+            renderTable(); // Kutuları ve kilitleri güncelle
         }
 
         function addCharacter() {
@@ -335,7 +309,7 @@
         }
 
         function deleteCharacter(r) {
-            if (confirm(`"${appData[r].name}" silinecek. Emin misiniz?`)) {
+            if (confirm(`"${appData[r].name}" adlı karakteri silmek istediğinize emin misiniz?`)) {
                 appData.splice(r, 1);
                 saveData();
                 renderTable();
@@ -343,17 +317,19 @@
         }
 
         function updateName(r, newName) { appData[r].name = newName.trim(); saveData(); }
+        
         function updateRegion(r) {
-            let newReg = prompt(`${appData[r].name} için yeni bölge (CE, NAW, NAE, SA):`, appData[r].region);
+            let newReg = prompt(`${appData[r].name} için yeni bölge (CE, NAW, vb.):`, appData[r].region);
             if(newReg) { appData[r].region = newReg.toUpperCase().trim(); saveData(); renderTable(); }
         }
+        
         function updateGS(r) {
-            let newGS = prompt(`${appData[r].name} için yeni GS:`, appData[r].gs);
+            let newGS = prompt(`${appData[r].name} için yeni Gearscore değerini girin:`, appData[r].gs);
             if (newGS && !isNaN(newGS)) { appData[r].gs = parseInt(newGS); saveData(); renderTable(); }
         }
 
         function manualReset() {
-            if(confirm("Tüm tikleri sıfırlamak istediğinize emin misiniz?")) resetAction();
+            if(confirm("Tüm haftalık kutuları sıfırlamak istediğinize emin misiniz?")) resetAction();
         }
 
         function resetAction() {
@@ -363,58 +339,30 @@
             localStorage.setItem('lastResetTime', new Date().getTime()); 
         }
 
-        // --- API & LOG SENKRONİZASYONU ---
-        async function syncAllLogs() {
-            const statusText = document.getElementById('sync-status');
-            statusText.style.color = "#ffb74d";
-            let updatedCount = 0;
+        // Çarşamba 13:00 Otomatik Sıfırlama
+        function checkWeeklyReset() {
+            const now = new Date();
+            const lastReset = localStorage.getItem('lastResetTime');
 
-            for (let i = 0; i < appData.length; i++) {
-                let char = appData[i];
-                statusText.innerText = `${char.name} (${char.region}) için loglar taranıyor...`;
-                
-                let targetUrl = `https://lostark.bible/character/${char.region}/${char.name}/logs`;
-                let proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+            let recentWed = new Date(now);
+            recentWed.setHours(13, 0, 0, 0);
 
-                try {
-                    let response = await fetch(proxyUrl);
-                    let data = await response.json();
-                    
-                    if (data.contents) {
-                        let pageText = data.contents.toLowerCase();
-                        
-                        // Şu anki satırda kaç tik var kontrol et
-                        let checkedCount = char.checks.filter(c => c === true).length;
-                        
-                        bossKeywords.forEach((boss, index) => {
-                            let searchWord = boss.toLowerCase();
-                            if(searchWord === "brel") searchWord = "brelshaza";
-                            
-                            // Sayfada boss varsa, kutu önceden işaretlenmemişse VE henüz 3 sınıra ulaşılmadıysa
-                            if (pageText.includes(searchWord) && !char.checks[index] && checkedCount < 3) {
-                                char.checks[index] = true;
-                                checkedCount++; // Sınırı takip etmek için artır
-                                updatedCount++;
-                            }
-                        });
-                    }
-                } catch (error) {
-                    console.error("Senkronizasyon hatası:", error);
-                }
+            const day = now.getDay(); 
+            let daysToSubtract = (day >= 3) ? (day - 3) : (day + 4);
+            if (day === 3 && now.getHours() < 13) {
+                daysToSubtract = 7;
             }
+            recentWed.setDate(now.getDate() - daysToSubtract);
 
-            saveData();
-            renderTable();
-
-            statusText.style.color = "#03dac6";
-            statusText.innerText = updatedCount > 0 
-                ? `✅ Senkronizasyon bitti! Yeni ${updatedCount} kutu otomatik işaretlendi.` 
-                : `✅ Senkronizasyon bitti. Yeni bir raid bulunamadı.`;
-
-            setTimeout(() => { statusText.innerText = ''; }, 5000);
+            if (!lastReset || parseInt(lastReset) < recentWed.getTime()) {
+                resetAction();
+                console.log("Haftalık Çarşamba 13:00 sıfırlaması yapıldı!");
+            }
         }
 
+        // --- Başlangıç ---
         loadData();
+        checkWeeklyReset();
         renderTable();
 
     </script>
