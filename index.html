@@ -406,7 +406,7 @@
                                 let bossIndex = -1;
                                 
                                 if (bossName.includes("aegir")) bossIndex = 0;
-                                else if (bossName.includes("brelshaza") || bossName.includes("brel")) bossIndex = 1;
+                                else if (bossName.includes("brelshaza") || bossName.includes("brel") && !bossName.includes("ember")) bossIndex = 1;
                                 else if (bossName.includes("mordum")) bossIndex = 2;
                                 else if (bossName.includes("armoche")) bossIndex = 3;
                                 else if (bossName.includes("kazeros")) bossIndex = 4;
@@ -463,3 +463,4 @@
     </script>
 </body>
 </html>
+
