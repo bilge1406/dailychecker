@@ -219,7 +219,7 @@
     <div class="summary-box">
         <div class="grand-total">Genel Toplam: <span id="grand-total-val">0</span></div>
         <div class="action-btns">
-            <button class="sync-btn" onclick="syncAllLogs()">🔄 Logları Senkronize Et</button>
+            <button class="sync-btn" onclick="syncAllLogs()">🔄 Manuel Log Senkronize Et</button>
             <button class="reset-btn" onclick="manualReset()">🗑️ Tüm Tabloyu Sıfırla</button>
         </div>
         <div id="sync-status"></div>
@@ -372,18 +372,17 @@
             localStorage.setItem('lastResetTime', new Date().getTime()); 
         }
 
-        // --- MÜKEMMELLEŞTİRİLMİŞ API SENKRONİZASYONU ---
+        // --- OTOMATİK API SENKRONİZASYONU ---
         async function syncAllLogs() {
             const statusText = document.getElementById('sync-status');
             statusText.style.color = "#ffb74d";
             let updatedCount = 0;
             
-            // Logların geçerli sayılacağı son reset tarihini al
             const lastResetTime = getLastResetTimestamp();
 
             for (let i = 0; i < appData.length; i++) {
                 let char = appData[i];
-                statusText.innerText = `${char.name} (${char.region}) için loglar taranıyor...`;
+                statusText.innerText = `${char.name} (${char.region}) aranıyor...`;
                 
                 let targetUrl = `https://lostark.bible/character/${char.region}/${char.name}/logs`;
                 let proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
@@ -396,8 +395,6 @@
                         let pageText = data.contents;
                         let checkedCount = char.checks.filter(c => c === true).length;
                         
-                        // YENİ AKILLI TARAYICI: Sadece süslü parantez içindeki boss ve timestamp verisini yakalar
-                        // Örnek: { ... boss:"Armoche, Sentinel of the Abyss", ... timestamp:1772120680513 ... }
                         let regex = /\{[^}]*boss:"([^"]+)"[^}]*timestamp:(\d+)[^}]*\}/g;
                         let match;
 
@@ -405,7 +402,6 @@
                             let bossName = match[1].toLowerCase();
                             let killTime = parseInt(match[2]);
 
-                            // Sadece bu haftaki (Geçen Çarşamba 13:00'dan sonraki) logları dikkate al
                             if (killTime > lastResetTime) {
                                 let bossIndex = -1;
                                 
@@ -415,7 +411,6 @@
                                 else if (bossName.includes("armoche")) bossIndex = 3;
                                 else if (bossName.includes("kazeros")) bossIndex = 4;
 
-                                // Eğer geçerli bir boss bulunduysa, daha önce tiklenmemişse ve 3 sınırına ulaşılmamışsa
                                 if (bossIndex !== -1 && !char.checks[bossIndex] && checkedCount < 3) {
                                     char.checks[bossIndex] = true;
                                     checkedCount++;
@@ -429,13 +424,16 @@
                 }
             }
 
-            saveData();
-            renderTable();
+            // Sadece YENİ bir raid bulunduğunda tabloyu yeniden çiz (Seni yazı yazarken rahatsız etmemesi için)
+            if (updatedCount > 0) {
+                saveData();
+                renderTable();
+            }
 
             statusText.style.color = "#03dac6";
             statusText.innerText = updatedCount > 0 
-                ? `✅ Senkronizasyon bitti! Bu haftaya ait ${updatedCount} raid onaylandı.` 
-                : `✅ Senkronizasyon bitti. Yeni bir raid bulunamadı.`;
+                ? `✅ Oto-Sync: Bu haftaya ait ${updatedCount} yeni raid onaylandı.` 
+                : `✅ Oto-Sync: Yeni raid bulunamadı.`;
 
             setTimeout(() => { statusText.innerText = ''; }, 5000);
         }
@@ -451,9 +449,16 @@
             }
         }
 
+        // --- BAŞLATMA VE OTO-ZAMANLAYICI ---
         loadData();
         checkWeeklyReset();
         renderTable();
+
+        // Sayfa açıldıktan 5 saniye sonra ilk taramayı gizlice yap
+        setTimeout(syncAllLogs, 5000);
+
+        // Ardından her 15 dakikada (15 * 60 * 1000 milisaniye) bir taramayı tekrarla
+        setInterval(syncAllLogs, 15 * 60 * 1000);
 
     </script>
 </body>
