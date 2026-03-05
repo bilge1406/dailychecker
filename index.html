@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lost Ark Altın Takipçisi</title>
+    <title>Lost Weekly Checker</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -27,8 +27,9 @@
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
             flex-wrap: wrap;
             justify-content: center;
+            align-items: center;
         }
-        .add-char-box input {
+        .add-char-box input, .add-char-box select {
             padding: 10px;
             border-radius: 4px;
             border: 1px solid #333;
@@ -36,7 +37,7 @@
             color: white;
             font-size: 16px;
         }
-        .add-char-box input:focus {
+        .add-char-box input:focus, .add-char-box select:focus {
             outline: none;
             border-color: #bb86fc;
         }
@@ -73,7 +74,6 @@
             transform: scale(1.3); 
             cursor: pointer;
         }
-        
         /* Kilitlenmiş Checkbox Stili */
         .checkbox:disabled {
             cursor: not-allowed;
@@ -87,7 +87,7 @@
             align-items: center;
             justify-content: space-between;
             gap: 10px;
-            min-width: 180px;
+            min-width: 200px;
         }
         .char-name {
             cursor: text;
@@ -95,15 +95,24 @@
             padding: 2px 5px;
             flex-grow: 1;
             text-align: left;
+            font-weight: bold;
         }
         .char-name:focus { outline: none; border-bottom: 1px solid #bb86fc; }
-        .char-gs {
-            font-size: 12px;
+        .badge-container {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            align-items: flex-end;
+        }
+        .char-badge {
+            font-size: 11px;
             background-color: #333;
-            padding: 4px 8px;
-            border-radius: 12px;
+            padding: 4px 6px;
+            border-radius: 4px;
             color: #ffb74d;
             cursor: pointer;
+            text-align: center;
+            min-width: 45px;
         }
         .delete-btn {
             background-color: transparent;
@@ -133,7 +142,7 @@
             padding: 20px;
             border-radius: 8px;
             text-align: center;
-            width: 300px;
+            width: 320px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }
         .grand-total {
@@ -142,17 +151,41 @@
             color: #ffb74d;
             margin-bottom: 20px;
         }
+        .action-btns {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .sync-btn {
+            background-color: #bb86fc;
+            color: #000;
+            border: none;
+            padding: 10px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .sync-btn:hover { background-color: #9965f4; }
         .reset-btn {
             background-color: #cf6679;
             color: white;
             border: none;
-            padding: 10px 20px;
-            font-size: 16px;
+            padding: 10px;
+            font-size: 14px;
             border-radius: 4px;
             cursor: pointer;
             transition: 0.3s;
         }
         .reset-btn:hover { background-color: #b33951; }
+        
+        #sync-status {
+            font-size: 12px;
+            color: #03dac6;
+            margin-top: 10px;
+            min-height: 15px;
+        }
     </style>
 </head>
 <body>
@@ -160,6 +193,12 @@
     <h1>Lost Ark Altın Takipçisi</h1>
 
     <div class="add-char-box">
+        <select id="new-region" title="Sunucu Bölgesi">
+            <option value="CE">CE (Central)</option>
+            <option value="NAE">NAE (East)</option>
+            <option value="NAW">NAW (West)</option>
+            <option value="SA">SA (South)</option>
+        </select>
         <input type="text" id="new-name" placeholder="Karakter İsmi">
         <input type="number" id="new-gs" placeholder="Gearscore (Örn: 1720)">
         <button class="add-btn" onclick="addCharacter()">Karakter Ekle</button>
@@ -183,23 +222,27 @@
 
     <div class="summary-box">
         <div class="grand-total">Genel Toplam: <span id="grand-total-val">0</span></div>
-        <button class="reset-btn" onclick="manualReset()">Tüm Tabloyu Sıfırla</button>
+        <div class="action-btns">
+            <button class="sync-btn" onclick="syncAllLogs()">🔄 Logları Senkronize Et</button>
+            <button class="reset-btn" onclick="manualReset()">🗑️ Tüm Tabloyu Sıfırla</button>
+        </div>
+        <div id="sync-status"></div>
     </div>
 
     <script>
-        // Veri Yapısı
         let appData = [];
-        // Sırasıyla: Aegir, Brel, Mordum, Armoche (Varsayılan), Kazeros
         const defaultRewards = [21000, 23800, 28000, 22440, 27200]; 
+        const bossKeywords = ["Aegir", "Brel", "Mordum", "Armoche", "Kazeros"]; 
 
-        // Veriyi Yükle veya Başlangıç Verisi Oluştur
         function loadData() {
             let saved = localStorage.getItem('lostArkAppData');
             if (saved) {
                 appData = JSON.parse(saved);
+                // Eski verilerde region yoksa varsayılan olarak CE ata (Geriye dönük uyumluluk)
+                appData.forEach(c => { if(!c.region) c.region = "CE"; });
             } else {
                 appData = [
-                    { name: "Ana Karakter", gs: 1720, checks: [false, false, false, false, false] }
+                    { name: "Ana Karakter", region: "CE", gs: 1720, checks: [false, false, false, false, false] }
                 ];
                 saveData();
             }
@@ -209,7 +252,6 @@
             localStorage.setItem('lostArkAppData', JSON.stringify(appData));
         }
 
-        // Tabloyu Çizme İşlemi
         function renderTable() {
             const tbody = document.getElementById('table-body');
             tbody.innerHTML = '';
@@ -218,45 +260,35 @@
             appData.forEach((char, r) => {
                 let tr = document.createElement('tr');
                 
-                // --- İsim, GS ve Silme Butonu Hücresi ---
                 let nameCell = `
                     <div class="char-cell">
-                        <span class="char-name" contenteditable="true" onblur="updateName(${r}, this.innerText)" title="İsmi değiştirmek için tıklayın">${char.name}</span>
-                        <span class="char-gs" onclick="updateGS(${r})" title="Gearscore'u değiştirmek için tıklayın">${char.gs} GS</span>
+                        <span class="char-name" contenteditable="true" onblur="updateName(${r}, this.innerText)" title="İsmi değiştir">${char.name}</span>
+                        <div class="badge-container">
+                            <span class="char-badge" style="background-color:#444;" onclick="updateRegion(${r})" title="Bölgeyi değiştir">${char.region}</span>
+                            <span class="char-badge" onclick="updateGS(${r})" title="GS değiştir">${char.gs} GS</span>
+                        </div>
                         <button class="delete-btn" onclick="deleteCharacter(${r})" title="Karakteri Sil">✖</button>
                     </div>
                 `;
 
-                // --- Altın Hesaplama ve Kutu Mantığı ---
                 let currentRewards = [...defaultRewards];
-                if (char.gs >= 1720) {
-                    currentRewards[3] = 28560; // Armoche GS bonusu
-                }
+                if (char.gs >= 1720) currentRewards[3] = 28560;
 
                 let checkCells = '';
                 let rowTotal = 0;
-                
-                // Önce bu satırda kaç tane tik olduğunu sayalım
                 let checkedCount = char.checks.filter(isChecked => isChecked === true).length;
 
-                // Kutuları oluştur
                 for (let c = 0; c < 5; c++) {
                     let isChecked = char.checks[c];
-                    
-                    // Eğer satırda 3 veya daha fazla tik varsa ve BU KUTU İŞARETLİ DEĞİLSE, onu kilitle
                     let isDisabled = (!isChecked && checkedCount >= 3) ? 'disabled' : '';
 
                     checkCells += `<td><input type="checkbox" class="checkbox" ${isChecked ? 'checked' : ''} ${isDisabled} onchange="toggleCheck(${r}, ${c}, this.checked)"></td>`;
                     
-                    if (isChecked) {
-                        rowTotal += currentRewards[c];
-                    }
+                    if (isChecked) rowTotal += currentRewards[c];
                 }
 
-                // 3 ve daha fazla tik varsa Tamamlandı yazısını hazırla
                 let statusBadgeHTML = checkedCount >= 3 ? `<div class="status-badge">Tamamlandı</div>` : '';
 
-                // Satırı birleştir (Sütun yapısı: Bilgi + 5 Boss + Toplam/Badge)
                 tr.innerHTML = `
                     <td>${nameCell}</td>
                     ${checkCells}
@@ -268,110 +300,121 @@
                     </td>
                 `;
                 tbody.appendChild(tr);
-                
                 grandTotal += rowTotal;
             });
 
-            // Genel Toplamı Yaz
             document.getElementById('grand-total-val').innerText = grandTotal.toLocaleString('tr-TR');
             
-            // Enter'a basılınca ismi kaydetme özelliği
             document.querySelectorAll('.char-name').forEach(item => {
                 item.addEventListener('keydown', function(e) {
-                    if (e.key === 'Enter') {
-                        e.preventDefault();
-                        this.blur();
-                    }
+                    if (e.key === 'Enter') { e.preventDefault(); this.blur(); }
                 });
             });
         }
 
-        // --- ETKİLEŞİM FONKSİYONLARI ---
-
         function toggleCheck(r, c, isChecked) {
             appData[r].checks[c] = isChecked;
             saveData();
-            renderTable(); // Kutuyu güncelleyince hesaplamayı ve kilitleri yenile
+            renderTable();
         }
 
         function addCharacter() {
-            let nameInput = document.getElementById('new-name');
-            let gsInput = document.getElementById('new-gs');
+            let region = document.getElementById('new-region').value;
+            let nameInput = document.getElementById('new-name').value.trim();
+            let gsInput = parseInt(document.getElementById('new-gs').value);
             
-            let name = nameInput.value.trim() || `Karakter ${appData.length + 1}`;
-            let gs = parseInt(gsInput.value) || 1600; 
+            if(!nameInput) return alert("Lütfen bir karakter ismi girin!");
 
-            appData.push({ name: name, gs: gs, checks: [false, false, false, false, false] });
+            appData.push({ name: nameInput, region: region, gs: gsInput || 1600, checks: [false, false, false, false, false] });
             
-            nameInput.value = '';
-            gsInput.value = '';
+            document.getElementById('new-name').value = '';
+            document.getElementById('new-gs').value = '';
             
             saveData();
             renderTable();
         }
 
         function deleteCharacter(r) {
-            if (confirm(`"${appData[r].name}" adlı karakteri silmek istediğinize emin misiniz?`)) {
+            if (confirm(`"${appData[r].name}" silinecek. Emin misiniz?`)) {
                 appData.splice(r, 1);
                 saveData();
                 renderTable();
             }
         }
 
-        function updateName(r, newName) {
-            appData[r].name = newName.trim();
-            saveData();
+        function updateName(r, newName) { appData[r].name = newName.trim(); saveData(); }
+        function updateRegion(r) {
+            let newReg = prompt(`${appData[r].name} için yeni bölge (CE, NAW, NAE, SA):`, appData[r].region);
+            if(newReg) { appData[r].region = newReg.toUpperCase().trim(); saveData(); renderTable(); }
         }
-
         function updateGS(r) {
-            let newGS = prompt(`${appData[r].name} için yeni Gearscore değerini girin:`, appData[r].gs);
-            if (newGS !== null && !isNaN(newGS) && newGS.trim() !== "") {
-                appData[r].gs = parseInt(newGS);
-                saveData();
-                renderTable(); 
-            }
+            let newGS = prompt(`${appData[r].name} için yeni GS:`, appData[r].gs);
+            if (newGS && !isNaN(newGS)) { appData[r].gs = parseInt(newGS); saveData(); renderTable(); }
         }
-
-        // --- SIFIRLAMA FONKSİYONLARI ---
 
         function manualReset() {
-            if(confirm("Haftalık kutuları sıfırlamak istediğinize emin misiniz? (Karakterleriniz silinmez)")) {
-                resetAction();
-            }
+            if(confirm("Tüm tikleri sıfırlamak istediğinize emin misiniz?")) resetAction();
         }
 
         function resetAction() {
-            appData.forEach(char => {
-                char.checks = [false, false, false, false, false];
-            });
+            appData.forEach(char => char.checks = [false, false, false, false, false]);
             saveData();
             renderTable();
             localStorage.setItem('lastResetTime', new Date().getTime()); 
         }
 
-        function checkWeeklyReset() {
-            const now = new Date();
-            const lastReset = localStorage.getItem('lastResetTime');
+        // --- API & LOG SENKRONİZASYONU ---
+        async function syncAllLogs() {
+            const statusText = document.getElementById('sync-status');
+            statusText.style.color = "#ffb74d";
+            let updatedCount = 0;
 
-            let recentWed = new Date(now);
-            recentWed.setHours(13, 0, 0, 0);
+            for (let i = 0; i < appData.length; i++) {
+                let char = appData[i];
+                statusText.innerText = `${char.name} (${char.region}) için loglar taranıyor...`;
+                
+                let targetUrl = `https://lostark.bible/character/${char.region}/${char.name}/logs`;
+                let proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
 
-            const day = now.getDay(); 
-            let daysToSubtract = (day >= 3) ? (day - 3) : (day + 4);
-            if (day === 3 && now.getHours() < 13) {
-                daysToSubtract = 7;
+                try {
+                    let response = await fetch(proxyUrl);
+                    let data = await response.json();
+                    
+                    if (data.contents) {
+                        let pageText = data.contents.toLowerCase();
+                        
+                        // Şu anki satırda kaç tik var kontrol et
+                        let checkedCount = char.checks.filter(c => c === true).length;
+                        
+                        bossKeywords.forEach((boss, index) => {
+                            let searchWord = boss.toLowerCase();
+                            if(searchWord === "brel") searchWord = "brelshaza";
+                            
+                            // Sayfada boss varsa, kutu önceden işaretlenmemişse VE henüz 3 sınıra ulaşılmadıysa
+                            if (pageText.includes(searchWord) && !char.checks[index] && checkedCount < 3) {
+                                char.checks[index] = true;
+                                checkedCount++; // Sınırı takip etmek için artır
+                                updatedCount++;
+                            }
+                        });
+                    }
+                } catch (error) {
+                    console.error("Senkronizasyon hatası:", error);
+                }
             }
-            recentWed.setDate(now.getDate() - daysToSubtract);
 
-            if (!lastReset || parseInt(lastReset) < recentWed.getTime()) {
-                resetAction();
-                console.log("Haftalık Çarşamba 13:00 sıfırlaması yapıldı!");
-            }
+            saveData();
+            renderTable();
+
+            statusText.style.color = "#03dac6";
+            statusText.innerText = updatedCount > 0 
+                ? `✅ Senkronizasyon bitti! Yeni ${updatedCount} kutu otomatik işaretlendi.` 
+                : `✅ Senkronizasyon bitti. Yeni bir raid bulunamadı.`;
+
+            setTimeout(() => { statusText.innerText = ''; }, 5000);
         }
 
-        // --- BAŞLATMA ---
         loadData();
-        checkWeeklyReset();
         renderTable();
 
     </script>
