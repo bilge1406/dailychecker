@@ -246,7 +246,6 @@
             localStorage.setItem('lostArkAppData', JSON.stringify(appData));
         }
 
-        // Geçen Çarşamba saat 13:00'ın milisaniye (timestamp) değerini bulur
         function getLastResetTimestamp() {
             let now = new Date();
             let resetDate = new Date(now);
@@ -372,7 +371,7 @@
             localStorage.setItem('lastResetTime', new Date().getTime()); 
         }
 
-        // --- OTOMATİK API SENKRONİZASYONU ---
+        // --- GÜNCELLENMİŞ VE GÜÇLENDİRİLMİŞ API SENKRONİZASYONU ---
         async function syncAllLogs() {
             const statusText = document.getElementById('sync-status');
             statusText.style.color = "#ffb74d";
@@ -385,16 +384,18 @@
                 statusText.innerText = `${char.name} (${char.region}) aranıyor...`;
                 
                 let targetUrl = `https://lostark.bible/character/${char.region}/${char.name}/logs`;
-                let proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+                // Proxy servisini daha güvenilir olan corsproxy.io ile değiştirdik
+                let proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`;
 
                 try {
                     let response = await fetch(proxyUrl);
-                    let data = await response.json();
+                    if (!response.ok) throw new Error("Proxy veya ağ hatası");
+
+                    // Yeni proxy JSON değil, doğrudan metin (text) döndürür
+                    let pageText = await response.text();
                     
-                    if (data.contents) {
-                        let pageText = data.contents;
+                    if (pageText) {
                         let checkedCount = char.checks.filter(c => c === true).length;
-                        
                         let regex = /\{[^}]*boss:"([^"]+)"[^}]*timestamp:(\d+)[^}]*\}/g;
                         let match;
 
@@ -405,11 +406,21 @@
                             if (killTime > lastResetTime) {
                                 let bossIndex = -1;
                                 
-                                if (bossName.includes("aegir")) bossIndex = 0;
-                                else if (bossName.includes("brelshaza") && !bossName.includes("ember") || bossName.includes("brel") && !bossName.includes("ember")) bossIndex = 1;
-                                else if (bossName.includes("mordum")) bossIndex = 2;
-                                else if (bossName.includes("armoche")) bossIndex = 3;
-                                else if (bossName.includes("kazeros")) bossIndex = 4;
+                                if (bossName.includes("aegir")) {
+                                    bossIndex = 0;
+                                }
+                                else if ((bossName.includes("brelshaza") || bossName.includes("brel")) && !bossName.includes("ember")) {
+                                    bossIndex = 1;
+                                }
+                                else if (bossName.includes("mordum")) {
+                                    bossIndex = 2;
+                                }
+                                else if (bossName.includes("armoche")) {
+                                    bossIndex = 3;
+                                }
+                                else if (bossName.includes("kazeros")) {
+                                    bossIndex = 4;
+                                }
 
                                 if (bossIndex !== -1 && !char.checks[bossIndex] && checkedCount < 3) {
                                     char.checks[bossIndex] = true;
@@ -422,9 +433,11 @@
                 } catch (error) {
                     console.error("Senkronizasyon hatası:", error);
                 }
+
+                // Spama düşmemek ve proxy'den engellenmemek için diğer karaktere geçmeden 1 saniye bekle
+                await new Promise(resolve => setTimeout(resolve, 1000));
             }
 
-            // Sadece YENİ bir raid bulunduğunda tabloyu yeniden çiz (Seni yazı yazarken rahatsız etmemesi için)
             if (updatedCount > 0) {
                 saveData();
                 renderTable();
@@ -454,14 +467,12 @@
         checkWeeklyReset();
         renderTable();
 
-        // Sayfa açıldıktan 5 saniye sonra ilk taramayı gizlice yap
+        // Sayfa açıldıktan 5 saniye sonra ilk taramayı yap
         setTimeout(syncAllLogs, 5000);
 
-        // Ardından her 15 dakikada (15 * 60 * 1000 milisaniye) bir taramayı tekrarla
+        // Her 15 dakikada bir taramayı tekrarla
         setInterval(syncAllLogs, 15 * 60 * 1000);
 
     </script>
 </body>
 </html>
-
-
