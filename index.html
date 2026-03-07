@@ -371,7 +371,7 @@
             localStorage.setItem('lastResetTime', new Date().getTime()); 
         }
 
-        // --- GÜNCELLENMİŞ VE GÜÇLENDİRİLMİŞ API SENKRONİZASYONU ---
+        // --- SON ŞANS: CODETABS PROXY ---
         async function syncAllLogs() {
             const statusText = document.getElementById('sync-status');
             statusText.style.color = "#ffb74d";
@@ -384,14 +384,14 @@
                 statusText.innerText = `${char.name} (${char.region}) aranıyor...`;
                 
                 let targetUrl = `https://lostark.bible/character/${char.region}/${char.name}/logs`;
-                // Proxy servisini daha güvenilir olan corsproxy.io ile değiştirdik
-                let proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`;
+                // Yeni Proxy Servisi: api.codetabs.com
+                let proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`;
 
                 try {
                     let response = await fetch(proxyUrl);
-                    if (!response.ok) throw new Error("Proxy veya ağ hatası");
+                    if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
 
-                    // Yeni proxy JSON değil, doğrudan metin (text) döndürür
+                    // Codetabs doğrudan sayfanın metnini döndürür
                     let pageText = await response.text();
                     
                     if (pageText) {
@@ -434,8 +434,8 @@
                     console.error("Senkronizasyon hatası:", error);
                 }
 
-                // Spama düşmemek ve proxy'den engellenmemek için diğer karaktere geçmeden 1 saniye bekle
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                // 1.5 saniye bekleme süresi (Bot algılanmamak için)
+                await new Promise(resolve => setTimeout(resolve, 1500));
             }
 
             if (updatedCount > 0) {
@@ -446,7 +446,7 @@
             statusText.style.color = "#03dac6";
             statusText.innerText = updatedCount > 0 
                 ? `✅ Oto-Sync: Bu haftaya ait ${updatedCount} yeni raid onaylandı.` 
-                : `✅ Oto-Sync: Yeni raid bulunamadı.`;
+                : `✅ Oto-Sync: Tarama bitti, yeni raid yok.`;
 
             setTimeout(() => { statusText.innerText = ''; }, 5000);
         }
@@ -467,10 +467,7 @@
         checkWeeklyReset();
         renderTable();
 
-        // Sayfa açıldıktan 5 saniye sonra ilk taramayı yap
         setTimeout(syncAllLogs, 5000);
-
-        // Her 15 dakikada bir taramayı tekrarla
         setInterval(syncAllLogs, 15 * 60 * 1000);
 
     </script>
