@@ -290,7 +290,7 @@
                     let isChecked = char.checks[c];
                     let isDisabled = (!isChecked && checkedCount >= 3) ? 'disabled' : '';
 
-                    checkCells += `<td><input type="checkbox" class="checkbox" ${isChecked ? 'checked' : ''} ${isDisabled} onchange="toggleCheck(${r}, ${c}, this.checked)"></td>`;
+                    checkCells += `<td><input type="checkbox" class="checkbox" autocomplete="off" ${isChecked ? 'checked' : ''} ${isDisabled} onchange="toggleCheck(${r}, ${c}, this.checked)"></td>`;
                     
                     if (isChecked) rowTotal += currentRewards[c];
                 }
@@ -308,6 +308,13 @@
                     </td>
                 `;
                 tbody.appendChild(tr);
+
+                // HAYALET TİKLERİ ZORLA SİLEN KISIM BURASI (Tarayıcının hafızasını ezer):
+                let rowCheckboxes = tr.querySelectorAll('.checkbox');
+                for (let c = 0; c < 5; c++) {
+                    rowCheckboxes[c].checked = char.checks[c];
+                }
+
                 grandTotal += rowTotal;
             });
 
@@ -473,4 +480,5 @@
     </script>
 </body>
 </html>
+
 
