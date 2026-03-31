@@ -115,7 +115,6 @@
             background-color: rgba(255, 255, 255, 0.03);
         }
 
-        /* 6. SATIR AYIRICI ÇİZGİSİ (GOLD EARNER SINIRI) */
         #table-body tr:nth-child(6) {
             border-bottom: 2px dashed rgba(187, 134, 252, 0.6);
             box-shadow: 0 15px 15px -15px rgba(187, 134, 252, 0.2);
@@ -148,23 +147,60 @@
             align-items: center;
             justify-content: space-between;
             gap: 15px;
-            min-width: 220px;
+            min-width: 250px;
+        }
+        .char-info-wrapper {
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+            text-align: left;
         }
         .char-name {
             cursor: text;
-            padding: 4px 8px;
-            flex-grow: 1;
-            text-align: left;
+            padding: 2px 4px;
             font-weight: 600;
             font-size: 16px;
             color: #f8fafc;
             border-radius: 4px;
             border-bottom: 1px dashed transparent;
             transition: all 0.2s;
+            display: inline-block;
+            margin-bottom: 4px;
         }
         .char-name:hover { border-bottom: 1px dashed #64748b; background: rgba(255,255,255,0.05); }
         .char-name:focus { outline: none; border-bottom: 1px solid #bb86fc; background: rgba(0,0,0,0.2); }
         
+        /* Yeni Kutu (Box) Ayarları Tasarımı */
+        .box-toggles {
+            display: flex;
+            gap: 8px;
+        }
+        .box-toggle {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            color: #94a3b8;
+            background: rgba(15, 23, 42, 0.6);
+            padding: 3px 6px;
+            border-radius: 4px;
+            border: 1px solid #334155;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .box-toggle:hover {
+            border-color: #bb86fc;
+            color: #e2e8f0;
+        }
+        .box-toggle input {
+            accent-color: #f59e0b;
+            cursor: pointer;
+            margin: 0;
+            width: 12px;
+            height: 12px;
+        }
+
         .badge-container {
             display: flex;
             flex-direction: column;
@@ -314,16 +350,22 @@
 
     <script>
         let appData = [];
-        const defaultRewards = [21000, 23800, 28000, 22440, 27200]; 
+        // Sadece ilk 3 raid sabit. 4(Armoche) ve 5(Kazeros) dinamik hesaplanacak.
+        const defaultRewards = [21000, 23800, 28000, 0, 0]; 
 
         function loadData() {
             let saved = localStorage.getItem('lostArkAppData');
             if (saved) {
                 appData = JSON.parse(saved);
-                appData.forEach(c => { if(!c.region) c.region = "CE"; });
+                appData.forEach(c => { 
+                    if(!c.region) c.region = "CE"; 
+                    // Eski verilerde kutu ayarı yoksa varsayılan olarak "Kutuyu Alıyor (true)" yap
+                    if(typeof c.boxArmoche === 'undefined') c.boxArmoche = true;
+                    if(typeof c.boxKazeros === 'undefined') c.boxKazeros = true;
+                });
             } else {
                 appData = [
-                    { name: "Ana Karakter", region: "CE", gs: 1720, checks: [false, false, false, false, false] }
+                    { name: "Ana Karakter", region: "CE", gs: 1730, checks: [false, false, false, false, false], boxArmoche: true, boxKazeros: true }
                 ];
                 saveData();
             }
@@ -357,7 +399,17 @@
                 
                 let nameCell = `
                     <div class="char-cell">
-                        <span class="char-name" contenteditable="true" onblur="updateName(${r}, this.innerText)" title="İsmi değiştir">${char.name}</span>
+                        <div class="char-info-wrapper">
+                            <span class="char-name" contenteditable="true" onblur="updateName(${r}, this.innerText)" title="İsmi değiştir">${char.name}</span>
+                            <div class="box-toggles">
+                                <label class="box-toggle" title="Armoche Kutusunu Satın Al">
+                                    <input type="checkbox" onchange="toggleBox(${r}, 'armoche', this.checked)" ${char.boxArmoche ? 'checked' : ''}> A.Kutu
+                                </label>
+                                <label class="box-toggle" title="Kazeros Kutusunu Satın Al">
+                                    <input type="checkbox" onchange="toggleBox(${r}, 'kazeros', this.checked)" ${char.boxKazeros ? 'checked' : ''}> K.Kutu
+                                </label>
+                            </div>
+                        </div>
                         <div class="badge-container">
                             <span class="char-badge" onclick="updateRegion(${r})" title="Bölgeyi değiştir">${char.region}</span>
                             <span class="char-badge badge-gs" onclick="updateGS(${r})" title="GS değiştir">${char.gs} GS</span>
@@ -367,7 +419,18 @@
                 `;
 
                 let currentRewards = [...defaultRewards];
-                if (char.gs >= 1720) currentRewards[3] = 28560;
+                
+                // --- ARMOCHE HESABI (GS Sınırı: 1720) ---
+                let armocheBase = (char.gs >= 1720) ? 42000 : 33000;
+                let armocheBoxCost = (char.gs >= 1720) ? 13440 : 10560;
+                // Kutu tikliyse, kutu parasını ana altından düş:
+                currentRewards[3] = char.boxArmoche ? (armocheBase - armocheBoxCost) : armocheBase;
+
+                // --- KAZEROS HESABI (GS Sınırı: 1730) ---
+                let kazerosBase = (char.gs >= 1730) ? 52000 : 40000;
+                let kazerosBoxCost = (char.gs >= 1730) ? 16640 : 12800;
+                // Kutu tikliyse, kutu parasını ana altından düş:
+                currentRewards[4] = char.boxKazeros ? (kazerosBase - kazerosBoxCost) : kazerosBase;
 
                 let checkCells = '';
                 let rowTotal = 0;
@@ -396,7 +459,6 @@
                 `;
                 tbody.appendChild(tr);
 
-                // Tarayıcı Sahte Tik Koruması
                 let rowCheckboxes = tr.querySelectorAll('.checkbox');
                 for (let c = 0; c < 5; c++) {
                     rowCheckboxes[c].checked = char.checks[c];
@@ -414,6 +476,14 @@
             });
         }
 
+        // Kutu Alma Tercihlerini Kaydeden Fonksiyon
+        function toggleBox(r, type, isChecked) {
+            if (type === 'armoche') appData[r].boxArmoche = isChecked;
+            if (type === 'kazeros') appData[r].boxKazeros = isChecked;
+            saveData();
+            renderTable(); // Kutunun durumu değiştiği an altın hesabını anında güncelle
+        }
+
         function toggleCheck(r, c, isChecked) {
             appData[r].checks[c] = isChecked;
             saveData();
@@ -427,7 +497,8 @@
             
             if(!nameInput) return alert("Lütfen bir karakter ismi girin!");
 
-            appData.push({ name: nameInput, region: region, gs: gsInput || 1600, checks: [false, false, false, false, false] });
+            // Yeni karakter eklerken varsayılan olarak kutu alsın (true) olarak ayarlanır.
+            appData.push({ name: nameInput, region: region, gs: gsInput || 1600, checks: [false, false, false, false, false], boxArmoche: true, boxKazeros: true });
             
             document.getElementById('new-name').value = '';
             document.getElementById('new-gs').value = '';
@@ -459,6 +530,7 @@
         }
 
         function resetAction() {
+            // SADECE raid tiklerini sıfırlar. Kutu alma ayarları SABİT kalır.
             appData.forEach(char => char.checks = [false, false, false, false, false]);
             saveData();
             renderTable();
@@ -478,7 +550,7 @@
                 statusText.innerText = `${char.name} (${char.region}) aranıyor...`;
                 
                 let targetUrl = `https://lostark.bible/character/${char.region}/${char.name}/logs`;
-                let proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`;
+                let proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${targetUrl}`;
 
                 try {
                     let response = await fetch(proxyUrl);
