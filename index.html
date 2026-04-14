@@ -508,7 +508,7 @@
             localStorage.setItem('lastResetTime', new Date().getTime()); 
         }
 
-        // --- API SENKRONİZASYONU ---
+// --- 429 KORUMALI AKILLI API SENKRONİZASYONU ---
         async function syncAllLogs() {
             const statusText = document.getElementById('sync-status');
             statusText.style.color = "#f59e0b";
@@ -523,44 +523,64 @@
                 let targetUrl = `https://lostark.bible/character/${char.region}/${char.name}/logs`;
                 let proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${targetUrl}`;
 
-                try {
-                    let response = await fetch(proxyUrl);
-                    if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+                let success = false;
+                let retryCount = 0;
 
-                    let pageText = await response.text();
-                    
-                    if (pageText) {
-                        let checkedCount = char.checks.filter(c => c === true).length;
-                        let regex = /\{[^}]*boss:"([^"]+)"[^}]*timestamp:(\d+)[^}]*\}/g;
-                        let match;
+                // 429 hatası alırsak 1 kez daha denemesi için döngü (while) kurduk
+                while (!success && retryCount < 2) {
+                    try {
+                        let response = await fetch(proxyUrl);
+                        
+                        // Proxy bizi hızdan dolayı engellediyse (429) bilerek hata fırlat
+                        if (response.status === 429) {
+                            throw new Error("429_RATE_LIMIT");
+                        }
+                        if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
 
-                        while ((match = regex.exec(pageText)) !== null) {
-                            let bossName = match[1].toLowerCase();
-                            let killTime = parseInt(match[2]);
+                        let pageText = await response.text();
+                        
+                        if (pageText) {
+                            let checkedCount = char.checks.filter(c => c === true).length;
+                            let regex = /\{[^}]*boss:"([^"]+)"[^}]*timestamp:(\d+)[^}]*\}/g;
+                            let match;
 
-                            if (killTime > lastResetTime) {
-                                let bossIndex = -1;
-                                
-                                // Yeni indeksler: 0: Brel, 1: Mordum, 2: Armoche, 3: Kazeros, 4: Serca
-                                if ((bossName.includes("brelshaza") || bossName.includes("brel")) && !bossName.includes("ember")) bossIndex = 0;
-                                else if (bossName.includes("mordum")) bossIndex = 1;
-                                else if (bossName.includes("armoche")) bossIndex = 2;
-                                else if (bossName.includes("kazeros")) bossIndex = 3;
-                                else if (bossName.includes("serca")) bossIndex = 4;
+                            while ((match = regex.exec(pageText)) !== null) {
+                                let bossName = match[1].toLowerCase();
+                                let killTime = parseInt(match[2]);
 
-                                if (bossIndex !== -1 && !char.checks[bossIndex] && checkedCount < 3) {
-                                    char.checks[bossIndex] = true;
-                                    checkedCount++;
-                                    updatedCount++;
+                                if (killTime > lastResetTime) {
+                                    let bossIndex = -1;
+                                    
+                                    if ((bossName.includes("brelshaza") || bossName.includes("brel")) && !bossName.includes("ember")) bossIndex = 0;
+                                    else if (bossName.includes("mordum")) bossIndex = 1;
+                                    else if (bossName.includes("armoche")) bossIndex = 2;
+                                    else if (bossName.includes("kazeros")) bossIndex = 3;
+                                    else if (bossName.includes("serca")) bossIndex = 4;
+
+                                    if (bossIndex !== -1 && !char.checks[bossIndex] && checkedCount < 3) {
+                                        char.checks[bossIndex] = true;
+                                        checkedCount++;
+                                        updatedCount++;
+                                    }
                                 }
                             }
+                            success = true; // Başarıyla okundu, döngüden çık
+                        }
+                    } catch (error) {
+                        if (error.message === "429_RATE_LIMIT") {
+                            retryCount++;
+                            statusText.innerText = `⏳ Çok hızlı gittik... 5sn mola! (${char.name} tekrar deneniyor)`;
+                            // Ceza molası: 5 saniye bekle ve aynı karakteri tekrar dene
+                            await new Promise(resolve => setTimeout(resolve, 5000));
+                        } else {
+                            console.error("Senkronizasyon hatası:", error);
+                            break; // 429 dışı (çökme vb.) bir hataysa bu karakteri atla
                         }
                     }
-                } catch (error) {
-                    console.error("Senkronizasyon hatası:", error);
                 }
 
-                await new Promise(resolve => setTimeout(resolve, 1500));
+                // Diğer karaktere geçmeden önce bekleme süresini 1.5'ten 3 saniyeye çıkardık
+                await new Promise(resolve => setTimeout(resolve, 3000));
             }
 
             if (updatedCount > 0) {
@@ -575,7 +595,7 @@
 
             setTimeout(() => { statusText.innerText = ''; }, 5000);
         }
-
+        
         function checkWeeklyReset() {
             const now = new Date();
             const lastReset = localStorage.getItem('lastResetTime');
