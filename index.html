@@ -29,7 +29,6 @@
         }
         h1 span { color: #bb86fc; }
         
-        /* Karakter Ekleme Alanı */
         .add-char-box {
             background: rgba(30, 41, 59, 0.7);
             backdrop-filter: blur(10px);
@@ -72,12 +71,8 @@
             transition: transform 0.2s, box-shadow 0.2s;
             font-size: 15px;
         }
-        .add-btn:hover { 
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(3, 218, 198, 0.4); 
-        }
+        .add-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(3, 218, 198, 0.4); }
 
-        /* Tablo Tasarımı */
         table {
             border-collapse: collapse;
             margin-bottom: 30px;
@@ -88,13 +83,10 @@
             box-shadow: 0 10px 40px rgba(0,0,0,0.4);
             border: 1px solid rgba(255,255,255,0.05);
             width: 100%;
-            max-width: 1000px;
+            max-width: 1050px;
         }
 
-        th, td {
-            padding: 16px 20px;
-            text-align: center;
-        }
+        th, td { padding: 16px 20px; text-align: center; }
         
         th { 
             background-color: rgba(15, 23, 42, 0.8); 
@@ -111,20 +103,14 @@
             transition: background 0.2s;
         }
 
-        #table-body tr:hover {
-            background-color: rgba(255, 255, 255, 0.03);
-        }
+        #table-body tr:hover { background-color: rgba(255, 255, 255, 0.03); }
 
         #table-body tr:nth-child(6) {
             border-bottom: 2px dashed rgba(187, 134, 252, 0.6);
             box-shadow: 0 15px 15px -15px rgba(187, 134, 252, 0.2);
         }
 
-        .row-total { 
-            font-weight: 800; 
-            color: #03dac6; 
-            font-size: 16px;
-        }
+        .row-total { font-weight: 800; color: #03dac6; font-size: 16px; }
         
         .checkbox { 
             accent-color: #bb86fc; 
@@ -136,18 +122,14 @@
             transform: scale(1.6);
             filter: drop-shadow(0 0 5px rgba(187,134,252,0.5));
         }
-        .checkbox:disabled {
-            cursor: not-allowed;
-            opacity: 0.2;
-            filter: grayscale(100%);
-        }
+        .checkbox:disabled { cursor: not-allowed; opacity: 0.2; filter: grayscale(100%); }
         
         .char-cell {
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 15px;
-            min-width: 250px;
+            min-width: 280px;
         }
         .char-info-wrapper {
             display: flex;
@@ -170,36 +152,26 @@
         .char-name:hover { border-bottom: 1px dashed #64748b; background: rgba(255,255,255,0.05); }
         .char-name:focus { outline: none; border-bottom: 1px solid #bb86fc; background: rgba(0,0,0,0.2); }
         
-        /* Yeni Kutu (Box) Ayarları Tasarımı */
         .box-toggles {
             display: flex;
-            gap: 8px;
+            gap: 4px;
         }
         .box-toggle {
             display: flex;
             align-items: center;
-            gap: 4px;
-            font-size: 10px;
+            gap: 2px;
+            font-size: 9px;
             font-weight: 600;
             color: #94a3b8;
             background: rgba(15, 23, 42, 0.6);
-            padding: 3px 6px;
+            padding: 2px 5px;
             border-radius: 4px;
             border: 1px solid #334155;
             cursor: pointer;
             transition: all 0.2s;
         }
-        .box-toggle:hover {
-            border-color: #bb86fc;
-            color: #e2e8f0;
-        }
-        .box-toggle input {
-            accent-color: #f59e0b;
-            cursor: pointer;
-            margin: 0;
-            width: 12px;
-            height: 12px;
-        }
+        .box-toggle:hover { border-color: #bb86fc; color: #e2e8f0; }
+        .box-toggle input { accent-color: #f59e0b; cursor: pointer; margin: 0; width: 10px; height: 10px; }
 
         .badge-container {
             display: flex;
@@ -266,11 +238,7 @@
             margin-bottom: 25px;
             text-shadow: 0 0 15px rgba(245, 158, 11, 0.3);
         }
-        .action-btns {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
+        .action-btns { display: flex; flex-direction: column; gap: 12px; }
         .sync-btn {
             background: linear-gradient(135deg, #a855f7, #9333ea);
             color: #fff;
@@ -298,13 +266,7 @@
         }
         .reset-btn:hover { background: rgba(239, 68, 68, 0.1); }
         
-        #sync-status {
-            font-size: 13px;
-            color: #03dac6;
-            margin-top: 15px;
-            min-height: 18px;
-            font-weight: 600;
-        }
+        #sync-status { font-size: 13px; color: #03dac6; margin-top: 15px; min-height: 18px; font-weight: 600; }
     </style>
 </head>
 <body>
@@ -327,11 +289,11 @@
         <thead>
             <tr>
                 <th>Karakter Bilgisi</th>
-                <th>Aegir</th>
                 <th>Brel</th>
                 <th>Mordum</th>
                 <th>Armoche</th>
                 <th>Kazeros</th>
+                <th>Serca</th>
                 <th>Karakter Altını</th>
             </tr>
         </thead>
@@ -350,8 +312,8 @@
 
     <script>
         let appData = [];
-        // Sadece ilk 3 raid sabit. 4(Armoche) ve 5(Kazeros) dinamik hesaplanacak.
-        const defaultRewards = [21000, 23800, 28000, 0, 0]; 
+        // Yeni Sıralama: Brel (0), Mordum (1), Armoche (2), Kazeros (3), Serca (4)
+        const defaultRewards = [23800, 28000, 0, 0, 0]; 
 
         function loadData() {
             let saved = localStorage.getItem('lostArkAppData');
@@ -359,13 +321,18 @@
                 appData = JSON.parse(saved);
                 appData.forEach(c => { 
                     if(!c.region) c.region = "CE"; 
-                    // Eski verilerde kutu ayarı yoksa varsayılan olarak "Kutuyu Alıyor (true)" yap
                     if(typeof c.boxArmoche === 'undefined') c.boxArmoche = true;
                     if(typeof c.boxKazeros === 'undefined') c.boxKazeros = true;
+                    
+                    // Serca güncellemesi geldiğinde eski tiklerin kaymaması için kutuları sıfırla
+                    if(typeof c.boxSerca === 'undefined') {
+                        c.boxSerca = true;
+                        c.checks = [false, false, false, false, false];
+                    }
                 });
             } else {
                 appData = [
-                    { name: "Ana Karakter", region: "CE", gs: 1730, checks: [false, false, false, false, false], boxArmoche: true, boxKazeros: true }
+                    { name: "Ana Karakter", region: "CE", gs: 1730, checks: [false, false, false, false, false], boxArmoche: true, boxKazeros: true, boxSerca: true }
                 ];
                 saveData();
             }
@@ -402,11 +369,14 @@
                         <div class="char-info-wrapper">
                             <span class="char-name" contenteditable="true" onblur="updateName(${r}, this.innerText)" title="İsmi değiştir">${char.name}</span>
                             <div class="box-toggles">
-                                <label class="box-toggle" title="Armoche Kutusunu Satın Al">
+                                <label class="box-toggle" title="Armoche">
                                     <input type="checkbox" onchange="toggleBox(${r}, 'armoche', this.checked)" ${char.boxArmoche ? 'checked' : ''}> A.Kutu
                                 </label>
-                                <label class="box-toggle" title="Kazeros Kutusunu Satın Al">
+                                <label class="box-toggle" title="Kazeros">
                                     <input type="checkbox" onchange="toggleBox(${r}, 'kazeros', this.checked)" ${char.boxKazeros ? 'checked' : ''}> K.Kutu
+                                </label>
+                                <label class="box-toggle" title="Serca">
+                                    <input type="checkbox" onchange="toggleBox(${r}, 'serca', this.checked)" ${char.boxSerca ? 'checked' : ''}> S.Kutu
                                 </label>
                             </div>
                         </div>
@@ -420,17 +390,20 @@
 
                 let currentRewards = [...defaultRewards];
                 
-                // --- ARMOCHE HESABI (GS Sınırı: 1720) ---
+                // --- 2. INDEX: ARMOCHE HESABI (GS Sınırı: 1720) ---
                 let armocheBase = (char.gs >= 1720) ? 42000 : 33000;
                 let armocheBoxCost = (char.gs >= 1720) ? 13440 : 10560;
-                // Kutu tikliyse, kutu parasını ana altından düş:
-                currentRewards[3] = char.boxArmoche ? (armocheBase - armocheBoxCost) : armocheBase;
+                currentRewards[2] = char.boxArmoche ? (armocheBase - armocheBoxCost) : armocheBase;
 
-                // --- KAZEROS HESABI (GS Sınırı: 1730) ---
+                // --- 3. INDEX: KAZEROS HESABI (GS Sınırı: 1730) ---
                 let kazerosBase = (char.gs >= 1730) ? 52000 : 40000;
                 let kazerosBoxCost = (char.gs >= 1730) ? 16640 : 12800;
-                // Kutu tikliyse, kutu parasını ana altından düş:
-                currentRewards[4] = char.boxKazeros ? (kazerosBase - kazerosBoxCost) : kazerosBase;
+                currentRewards[3] = char.boxKazeros ? (kazerosBase - kazerosBoxCost) : kazerosBase;
+
+                // --- 4. INDEX: SERCA HESABI (GS Sınırı: 1730) ---
+                let sercaBase = (char.gs >= 1730) ? 44000 : 35000;
+                let sercaBoxCost = (char.gs >= 1730) ? 14080 : 11200;
+                currentRewards[4] = char.boxSerca ? (sercaBase - sercaBoxCost) : sercaBase;
 
                 let checkCells = '';
                 let rowTotal = 0;
@@ -476,12 +449,12 @@
             });
         }
 
-        // Kutu Alma Tercihlerini Kaydeden Fonksiyon
         function toggleBox(r, type, isChecked) {
             if (type === 'armoche') appData[r].boxArmoche = isChecked;
             if (type === 'kazeros') appData[r].boxKazeros = isChecked;
+            if (type === 'serca') appData[r].boxSerca = isChecked;
             saveData();
-            renderTable(); // Kutunun durumu değiştiği an altın hesabını anında güncelle
+            renderTable();
         }
 
         function toggleCheck(r, c, isChecked) {
@@ -497,8 +470,7 @@
             
             if(!nameInput) return alert("Lütfen bir karakter ismi girin!");
 
-            // Yeni karakter eklerken varsayılan olarak kutu alsın (true) olarak ayarlanır.
-            appData.push({ name: nameInput, region: region, gs: gsInput || 1600, checks: [false, false, false, false, false], boxArmoche: true, boxKazeros: true });
+            appData.push({ name: nameInput, region: region, gs: gsInput || 1600, checks: [false, false, false, false, false], boxArmoche: true, boxKazeros: true, boxSerca: true });
             
             document.getElementById('new-name').value = '';
             document.getElementById('new-gs').value = '';
@@ -530,7 +502,6 @@
         }
 
         function resetAction() {
-            // SADECE raid tiklerini sıfırlar. Kutu alma ayarları SABİT kalır.
             appData.forEach(char => char.checks = [false, false, false, false, false]);
             saveData();
             renderTable();
@@ -570,11 +541,12 @@
                             if (killTime > lastResetTime) {
                                 let bossIndex = -1;
                                 
-                                if (bossName.includes("aegir")) bossIndex = 0;
-                                else if ((bossName.includes("brelshaza") || bossName.includes("brel")) && !bossName.includes("ember")) bossIndex = 1;
-                                else if (bossName.includes("mordum")) bossIndex = 2;
-                                else if (bossName.includes("armoche")) bossIndex = 3;
-                                else if (bossName.includes("kazeros")) bossIndex = 4;
+                                // Yeni indeksler: 0: Brel, 1: Mordum, 2: Armoche, 3: Kazeros, 4: Serca
+                                if ((bossName.includes("brelshaza") || bossName.includes("brel")) && !bossName.includes("ember")) bossIndex = 0;
+                                else if (bossName.includes("mordum")) bossIndex = 1;
+                                else if (bossName.includes("armoche")) bossIndex = 2;
+                                else if (bossName.includes("kazeros")) bossIndex = 3;
+                                else if (bossName.includes("serca")) bossIndex = 4;
 
                                 if (bossIndex !== -1 && !char.checks[bossIndex] && checkedCount < 3) {
                                     char.checks[bossIndex] = true;
