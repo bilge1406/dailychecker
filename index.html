@@ -520,15 +520,13 @@ async function syncAllLogs() {
         let char = appData[i];
         statusText.innerText = `${char.name} (${char.region}) aranıyor...`;
         
+        
         let targetUrl = `https://lostark.bible/character/${char.region}/${char.name}/logs`;
         
-        // --- DÜZELTİLEN KISIM BURA ---
-        // codetabs yerine corsproxy.io kullanıyoruz ve URL'yi formatlıyoruz
-        // let proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+        // BURAYA KENDI WORKER LINKINI YAZIYORSUN:
+        // Linkin sonuna /?url= eklemeyi unutma!
+        let proxyUrl = `https://lostarkproxy.bilgehangulseven.workers.dev/?url=${encodeURIComponent(targetUrl)}`;
         
-        // Eğer ileride corsproxy de engellenirse, üstteki satırı silip alttakini aktif edebilirsin:
-         let proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
-        // -----------------------------
 
         let success = false;
         let retryCount = 0;
