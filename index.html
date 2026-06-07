@@ -524,10 +524,10 @@ async function syncAllLogs() {
         
         // --- DÜZELTİLEN KISIM BURA ---
         // codetabs yerine corsproxy.io kullanıyoruz ve URL'yi formatlıyoruz
-        let proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+        // let proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
         
         // Eğer ileride corsproxy de engellenirse, üstteki satırı silip alttakini aktif edebilirsin:
-        // let proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+         let proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
         // -----------------------------
 
         let success = false;
