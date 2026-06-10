@@ -26,6 +26,7 @@
             margin-bottom: 30px;
             text-shadow: 0 0 20px rgba(187, 134, 252, 0.4);
             letter-spacing: -1px;
+            text-align: center;
         }
         h1 span { color: #bb86fc; }
         
@@ -129,7 +130,7 @@
             align-items: center;
             justify-content: space-between;
             gap: 15px;
-            min-width: 280px;
+            min-width: 320px; /* Kutular sığsın diye biraz genişlettik */
         }
         .char-info-wrapper {
             display: flex;
@@ -155,6 +156,7 @@
         .box-toggles {
             display: flex;
             gap: 4px;
+            flex-wrap: wrap;
         }
         .box-toggle {
             display: flex;
@@ -323,6 +325,7 @@
                     if(typeof c.boxArmoche === 'undefined') c.boxArmoche = true;
                     if(typeof c.boxKazeros === 'undefined') c.boxKazeros = true;
                     if(typeof c.boxSerca === 'undefined') c.boxSerca = true;
+                    if(typeof c.boxCathedral === 'undefined') c.boxCathedral = true; // Yeni Cathedral Kutusu
                     
                     // Raid yapısı 4'e düştüğü için eski verileri otomatik düzelt
                     if(!c.checks || c.checks.length !== 4) {
@@ -331,7 +334,7 @@
                 });
             } else {
                 appData = [
-                    { name: "Ana Karakter", region: "CE", gs: 1730, checks: [false, false, false, false], boxArmoche: true, boxKazeros: true, boxSerca: true }
+                    { name: "Ana Karakter", region: "CE", gs: 1750, checks: [false, false, false, false], boxArmoche: true, boxKazeros: true, boxSerca: true, boxCathedral: true }
                 ];
                 saveData();
             }
@@ -368,14 +371,17 @@
                         <div class="char-info-wrapper">
                             <span class="char-name" contenteditable="true" onblur="updateName(${r}, this.innerText)" title="İsmi değiştir">${char.name}</span>
                             <div class="box-toggles">
-                                <label class="box-toggle" title="Armoche">
+                                <label class="box-toggle" title="Armoche Kutu">
                                     <input type="checkbox" onchange="toggleBox(${r}, 'armoche', this.checked)" ${char.boxArmoche ? 'checked' : ''}> A.Kutu
                                 </label>
-                                <label class="box-toggle" title="Kazeros">
+                                <label class="box-toggle" title="Kazeros Kutu">
                                     <input type="checkbox" onchange="toggleBox(${r}, 'kazeros', this.checked)" ${char.boxKazeros ? 'checked' : ''}> K.Kutu
                                 </label>
-                                <label class="box-toggle" title="Serca">
+                                <label class="box-toggle" title="Serca Kutu">
                                     <input type="checkbox" onchange="toggleBox(${r}, 'serca', this.checked)" ${char.boxSerca ? 'checked' : ''}> S.Kutu
+                                </label>
+                                <label class="box-toggle" title="Cathedral Kutu">
+                                    <input type="checkbox" onchange="toggleBox(${r}, 'cathedral', this.checked)" ${char.boxCathedral ? 'checked' : ''}> C.Kutu
                                 </label>
                             </div>
                         </div>
@@ -405,11 +411,21 @@
                 currentRewards[2] = char.boxSerca ? (sercaBase - sercaBoxCost) : sercaBase;
 
                 // --- 3. INDEX: CATHEDRAL HESABI ---
-                let cathedralReward = 0;
-                if (char.gs >= 1750) cathedralReward = 50000;      // NMR
-                else if (char.gs >= 1720) cathedralReward = 40000; // HM
-                else if (char.gs >= 1700) cathedralReward = 30000; // NM
-                currentRewards[3] = cathedralReward;
+                let cathedralBase = 0;
+                let cathedralBoxCost = 0;
+                
+                if (char.gs >= 1750) {
+                    cathedralBase = 50000;      // NMR
+                    cathedralBoxCost = 16000;
+                } else if (char.gs >= 1720) {
+                    cathedralBase = 40000;      // HM
+                    cathedralBoxCost = 12800;
+                } else if (char.gs >= 1700) {
+                    cathedralBase = 30000;      // NM
+                    cathedralBoxCost = 9600;
+                }
+                
+                currentRewards[3] = char.boxCathedral ? (cathedralBase - cathedralBoxCost) : cathedralBase;
 
                 let checkCells = '';
                 let rowTotal = 0;
@@ -459,6 +475,7 @@
             if (type === 'armoche') appData[r].boxArmoche = isChecked;
             if (type === 'kazeros') appData[r].boxKazeros = isChecked;
             if (type === 'serca') appData[r].boxSerca = isChecked;
+            if (type === 'cathedral') appData[r].boxCathedral = isChecked; // Cathedral Eklendi
             saveData();
             renderTable();
         }
@@ -476,7 +493,16 @@
             
             if(!nameInput) return alert("Lütfen bir karakter ismi girin!");
 
-            appData.push({ name: nameInput, region: region, gs: gsInput || 1600, checks: [false, false, false, false], boxArmoche: true, boxKazeros: true, boxSerca: true });
+            appData.push({ 
+                name: nameInput, 
+                region: region, 
+                gs: gsInput || 1600, 
+                checks: [false, false, false, false], 
+                boxArmoche: true, 
+                boxKazeros: true, 
+                boxSerca: true,
+                boxCathedral: true 
+            });
             
             document.getElementById('new-name').value = '';
             document.getElementById('new-gs').value = '';
