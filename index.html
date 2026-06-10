@@ -130,7 +130,7 @@
             align-items: center;
             justify-content: space-between;
             gap: 15px;
-            min-width: 320px; /* Kutular sığsın diye biraz genişlettik */
+            min-width: 320px;
         }
         .char-info-wrapper {
             display: flex;
@@ -313,8 +313,6 @@
 
     <script>
         let appData = [];
-        // Sıralama: Armoche (0), Kazeros (1), Serca (2), Cathedral (3)
-        const defaultRewards = [0, 0, 0, 0]; 
 
         function loadData() {
             let saved = localStorage.getItem('lostArkAppData');
@@ -325,9 +323,8 @@
                     if(typeof c.boxArmoche === 'undefined') c.boxArmoche = true;
                     if(typeof c.boxKazeros === 'undefined') c.boxKazeros = true;
                     if(typeof c.boxSerca === 'undefined') c.boxSerca = true;
-                    if(typeof c.boxCathedral === 'undefined') c.boxCathedral = true; // Yeni Cathedral Kutusu
+                    if(typeof c.boxCathedral === 'undefined') c.boxCathedral = true;
                     
-                    // Raid yapısı 4'e düştüğü için eski verileri otomatik düzelt
                     if(!c.checks || c.checks.length !== 4) {
                         c.checks = [false, false, false, false];
                     }
@@ -393,24 +390,17 @@
                     </div>
                 `;
 
-                let currentRewards = [...defaultRewards];
+                // --- TABAN ALTIN VE KUTU MASRAFI HESAPLAMALARI ---
                 
-                // --- 0. INDEX: ARMOCHE HESABI (GS Sınırı: 1720) ---
                 let armocheBase = (char.gs >= 1720) ? 42000 : 33000;
                 let armocheBoxCost = (char.gs >= 1720) ? 13440 : 10560;
-                currentRewards[0] = char.boxArmoche ? (armocheBase - armocheBoxCost) : armocheBase;
 
-                // --- 1. INDEX: KAZEROS HESABI (GS Sınırı: 1730) ---
                 let kazerosBase = (char.gs >= 1730) ? 52000 : 40000;
                 let kazerosBoxCost = (char.gs >= 1730) ? 16640 : 12800;
-                currentRewards[1] = char.boxKazeros ? (kazerosBase - kazerosBoxCost) : kazerosBase;
 
-                // --- 2. INDEX: SERCA HESABI (GS Sınırı: 1730) ---
                 let sercaBase = (char.gs >= 1730) ? 44000 : 35000;
                 let sercaBoxCost = (char.gs >= 1730) ? 14080 : 11200;
-                currentRewards[2] = char.boxSerca ? (sercaBase - sercaBoxCost) : sercaBase;
 
-                // --- 3. INDEX: CATHEDRAL HESABI ---
                 let cathedralBase = 0;
                 let cathedralBoxCost = 0;
                 
@@ -425,19 +415,31 @@
                     cathedralBoxCost = 9600;
                 }
                 
-                currentRewards[3] = char.boxCathedral ? (cathedralBase - cathedralBoxCost) : cathedralBase;
+                let rowTotal = 0;
+
+                // 1. ADIM: EĞER ALTIN TİKİ İŞARETLİYSE, KASAYA HAM ALTINI EKLE
+                if (char.checks[0]) rowTotal += armocheBase;
+                if (char.checks[1]) rowTotal += kazerosBase;
+                if (char.checks[2]) rowTotal += sercaBase;
+                if (char.checks[3]) rowTotal += cathedralBase;
+
+                // 2. ADIM: EĞER KUTU TİKİ İŞARETLİYSE, KUTU PARASINI HER HALÜKARDA KASADAN DÜŞ
+                // (Oyuncu altın almasa bile kutu satın aldığında eksi bakiye yansır)
+                if (char.boxArmoche) rowTotal -= armocheBoxCost;
+                if (char.boxKazeros) rowTotal -= kazerosBoxCost;
+                if (char.boxSerca) rowTotal -= sercaBoxCost;
+                if (char.boxCathedral) rowTotal -= cathedralBoxCost;
+
 
                 let checkCells = '';
-                let rowTotal = 0;
                 let checkedCount = char.checks.filter(isChecked => isChecked === true).length;
 
                 for (let c = 0; c < 4; c++) {
                     let isChecked = char.checks[c];
+                    // 3 kutu sınırına ulaşıldıysa ve bu kutu seçili değilse kilitle
                     let isDisabled = (!isChecked && checkedCount >= 3) ? 'disabled' : '';
 
                     checkCells += `<td><input type="checkbox" class="checkbox" id="chk-${r}-${c}" autocomplete="off" ${isChecked ? 'checked' : ''} ${isDisabled} onchange="toggleCheck(${r}, ${c}, this.checked)"></td>`;
-                    
-                    if (isChecked) rowTotal += currentRewards[c];
                 }
 
                 let statusBadgeHTML = checkedCount >= 3 ? `<div class="status-badge">Tamamlandı</div>` : '';
@@ -445,7 +447,7 @@
                 tr.innerHTML = `
                     <td>${nameCell}</td>
                     ${checkCells}
-                    <td class="row-total">
+                    <td class="row-total" style="${rowTotal < 0 ? 'color: #ef4444;' : ''}">
                         <div style="display: flex; flex-direction: column; align-items: center;">
                             <span>${rowTotal.toLocaleString('tr-TR')}</span>
                             ${statusBadgeHTML}
@@ -475,7 +477,7 @@
             if (type === 'armoche') appData[r].boxArmoche = isChecked;
             if (type === 'kazeros') appData[r].boxKazeros = isChecked;
             if (type === 'serca') appData[r].boxSerca = isChecked;
-            if (type === 'cathedral') appData[r].boxCathedral = isChecked; // Cathedral Eklendi
+            if (type === 'cathedral') appData[r].boxCathedral = isChecked; 
             saveData();
             renderTable();
         }
