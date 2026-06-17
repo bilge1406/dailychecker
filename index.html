@@ -391,7 +391,6 @@
                 `;
 
                 // --- TABAN ALTIN VE KUTU MASRAFI HESAPLAMALARI ---
-                
                 let armocheBase = (char.gs >= 1720) ? 42000 : 33000;
                 let armocheBoxCost = (char.gs >= 1720) ? 13440 : 10560;
 
@@ -424,7 +423,6 @@
                 if (char.checks[3]) rowTotal += cathedralBase;
 
                 // 2. ADIM: EĞER KUTU TİKİ İŞARETLİYSE, KUTU PARASINI HER HALÜKARDA KASADAN DÜŞ
-                // (Oyuncu altın almasa bile kutu satın aldığında eksi bakiye yansır)
                 if (char.boxArmoche) rowTotal -= armocheBoxCost;
                 if (char.boxKazeros) rowTotal -= kazerosBoxCost;
                 if (char.boxSerca) rowTotal -= sercaBoxCost;
@@ -473,11 +471,12 @@
             });
         }
 
+        // DÜZELTME 1: type === 'cathedral' olarak ayarlandı
         function toggleBox(r, type, isChecked) {
             if (type === 'armoche') appData[r].boxArmoche = isChecked;
             if (type === 'kazeros') appData[r].boxKazeros = isChecked;
             if (type === 'serca') appData[r].boxSerca = isChecked;
-            if (type === 'arcenos') appData[r].boxCathedral = isChecked; 
+            if (type === 'cathedral') appData[r].boxCathedral = isChecked; 
             saveData();
             renderTable();
         }
@@ -555,8 +554,6 @@
                 statusText.innerText = `${char.name} (${char.region}) aranıyor...`;
                 
                 let targetUrl = `https://lostark.bible/character/${char.region}/${char.name}/logs`;
-                
-                // SENIN CLOUDFLARE WORKER LINKIN
                 let proxyUrl = `https://lostarkproxy.bilgehangulseven.workers.dev/?url=${encodeURIComponent(targetUrl)}`;
 
                 let success = false;
@@ -575,25 +572,31 @@
                         
                         if (pageText) {
                             let checkedCount = char.checks.filter(c => c === true).length;
-                            let regex = /\{[^}]*boss:"([^"]+)"[^}]*timestamp:(\d+)[^}]*\}/g;
-                            let match;
+                            
+                            // DÜZELTME 2: Sıralamadan bağımsız, tüm log bloklarını ayıklayan güçlü Regex!
+                            let blocks = pageText.match(/\{[^{}]*boss:"[^"]+"[^{}]*\}/gi) || [];
 
-                            while ((match = regex.exec(pageText)) !== null) {
-                                let bossName = match[1].toLowerCase();
-                                let killTime = parseInt(match[2]);
+                            for (let block of blocks) {
+                                let bMatch = block.match(/boss:"([^"]+)"/i);
+                                let tMatch = block.match(/timestamp:(\d+)/i);
+                                
+                                if (bMatch && tMatch) {
+                                    let bossName = bMatch[1].toLowerCase();
+                                    let killTime = parseInt(tMatch[1]);
 
-                                if (killTime > lastResetTime) {
-                                    let bossIndex = -1;
-                                    
-                                    if (bossName.includes("armoche")) bossIndex = 0;
-                                    else if (bossName.includes("kazeros")) bossIndex = 1;
-                                    else if (bossName.includes("serca")) bossIndex = 2;
-                                    else if (bossName.includes("arcenos")) bossIndex = 3;
+                                    if (killTime > lastResetTime) {
+                                        let bossIndex = -1;
+                                        
+                                        if (bossName.includes("armoche")) bossIndex = 0;
+                                        else if (bossName.includes("kazeros")) bossIndex = 1;
+                                        else if (bossName.includes("serca")) bossIndex = 2;
+                                        else if (bossName.includes("arcenos") || bossName.includes("cathedral")) bossIndex = 3;
 
-                                    if (bossIndex !== -1 && !char.checks[bossIndex] && checkedCount < 3) {
-                                        char.checks[bossIndex] = true;
-                                        checkedCount++;
-                                        updatedCount++;
+                                        if (bossIndex !== -1 && !char.checks[bossIndex] && checkedCount < 3) {
+                                            char.checks[bossIndex] = true;
+                                            checkedCount++;
+                                            updatedCount++;
+                                        }
                                     }
                                 }
                             }
@@ -642,10 +645,6 @@
         loadData();
         checkWeeklyReset();
         renderTable();
-
-        // setTimeout(syncAllLogs, 5000);
-        // setInterval(syncAllLogs, 15 * 60 * 1000);
-
     </script>
 </body>
 </html>
